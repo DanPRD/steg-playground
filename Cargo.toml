@@ -1,8 +1,11 @@
 [package]
-name = "image-generation"
-version = "0.1.0"
+name = "steg-playground"
+version = "0.1.1"
 edition = "2024"
 
 [dependencies]
 noise = { version = "0.9.0", features = ["images"] }
 rand = "0.9.1"
+image = "0.25.6"
+rand_xoshiro = "0.7.0"
+bitvec = "1.0.1"
