@@ -7,7 +7,6 @@ const LOWER_BOUND: f64 = -0.7;
 const HIGHER_BOUND: f64 = 0.7;
 const NUM_COLS: usize = 10;
 const STEP: f64 = (HIGHER_BOUND - LOWER_BOUND) / (NUM_COLS as f64 - 1.0);
-
 const POSITIONS: [f64; NUM_COLS] = {
     let mut arr = [0.0; NUM_COLS];
     let mut i = 0;
@@ -17,6 +16,7 @@ const POSITIONS: [f64; NUM_COLS] = {
     }
     arr
 };
+
 
 pub fn simplex_image(seed: u32) -> Vec<[u8; 4]> {
     let base_noise= RidgedMulti::<Simplex>::new(seed);
@@ -33,7 +33,6 @@ pub fn simplex_image(seed: u32) -> Vec<[u8; 4]> {
         .into_iter()
         .collect::<Vec<_>>()
 }
-
 
 fn gen_col_gradient(seed: u32) -> ColorGradient {
     let mut grad = ColorGradient::new();

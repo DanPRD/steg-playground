@@ -23,7 +23,6 @@ fn main() {
     }
 }
 
-
 fn rng_from_seed(seed: u32) -> Xoshiro128StarStar {
     rand_xoshiro::Xoshiro128StarStar::seed_from_u64(seed as u64)
 }
