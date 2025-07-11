@@ -9,11 +9,11 @@ use crate::{random, rng_from_seed, HEIGHT, OUTPUT_DIR, WIDTH};
 
 #[derive(Debug)]
 pub enum StegMethod {
-    LSB,
-    RED,
-    GREEN,
-    BLUE,
-    ALPHA,
+    LSB, // LSB for R,G and B pixels
+    RED, // for R only, random layer
+    GREEN, // for G only, random layer
+    BLUE, // for B only, random layer
+    ALPHA, // hide something in alpha place
     PVD,
     BPCS,
     DCT,
@@ -44,12 +44,13 @@ pub struct StegProblem {
     pub slug: String,
     pub method: StegMethod,
     pub pixel_offset: usize,
-    pub image: Vec<[u8; 4]>
+    pub image: Vec<[u8; 4]>,
+    pub layer_idx: usize
 }
 
 impl Display for StegProblem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "seed: {}\nslug: {}\nmethod: {:?}\noffset: {}", self.seed, self.slug, self.method, self.pixel_offset)
+        write!(f, "seed: {}\nslug: {}\nmethod: {:?}\noffset: {}\nlayer: {}", self.seed, self.slug, self.method, self.pixel_offset, self.layer_idx)
     }
 }
 
@@ -63,24 +64,25 @@ fn random_slug(seed: u32) -> String {
     for _ in 0..NUM_ANIMALS {
         ret.push(ANIMALS[rng.random_range(0..ANIMALS.len())]);
     }
-    return ret.join("-").to_string()
+    return format!("DJP{{{}}}", ret.join("-").to_string());
 }
 
 pub fn random_steg_challenge(seed: u32) -> StegProblem {
     let mut rng = rng_from_seed(seed);
     let slug = random_slug(rng.next_u32());
     let method: StegMethod = rng.random();
-    let method = StegMethod::LSB;
+    let method = StegMethod::RED;
     let mut image = random::simplex_image(seed);
     
     let mut slug_bits= BitVec::<_, Msb0>::from_slice(slug.as_bytes()).into_iter().map(|bit| bit as u8);
     let bit_len = slug_bits.len();
 
-    let num_pixels = (bit_len + 2) / 3;
-    let mut pixel_offset = rng.next_u64() as usize % ((WIDTH*HEIGHT) - num_pixels + 1 );
 
-    let steg_image = match method {
+
+    let (steg_image, pixel_offset, layer_idx) = match method {
         StegMethod::LSB => {
+            let num_pixels = (bit_len + 2) / 3;
+            let mut pixel_offset = rng.next_u64() as usize % ((WIDTH*HEIGHT) - num_pixels + 1 );
 
             for idx in 0..num_pixels {
                 let mut pixel = image[idx + pixel_offset];
@@ -100,9 +102,23 @@ pub fn random_steg_challenge(seed: u32) -> StegProblem {
                 image[idx + pixel_offset] = pixel;
 
             }
-            image
+            (image, pixel_offset, 0)
         },
-        _ => vec![]
+        StegMethod::RED => {
+            let mut pixel_offset = rng.next_u64() as usize % ((WIDTH*HEIGHT) - bit_len + 1 );
+            pixel_offset = pixel_offset - (pixel_offset % 8);
+            let bit_layer_idx = rng.next_u32() as usize % 3;
+            for (idx, bit) in slug_bits.enumerate() {
+                let mut pixel = image[idx + pixel_offset];
+
+                pixel[0] = (pixel[0] & !(1 << bit_layer_idx)) | (bit << bit_layer_idx);
+                image[idx + pixel_offset] = pixel;
+            }
+
+
+            (image, pixel_offset, bit_layer_idx)
+        }
+        _ => (vec![], 0, 0)
     };
     
     return StegProblem {
@@ -110,7 +126,8 @@ pub fn random_steg_challenge(seed: u32) -> StegProblem {
         pixel_offset,
         method,
         seed,
-        slug
+        slug,
+        layer_idx
     }
 }
 
@@ -118,19 +135,19 @@ pub fn solve_steg_challenge(seed: u32) -> Result<String, image::ImageError> {
     let mut rng = rng_from_seed(seed);
     let slug = random_slug(rng.next_u32());
     let method: StegMethod = rng.random();
-    let method = StegMethod::LSB;
+    let method = StegMethod::RED;
     let image = image::open(format!("{}/{}.png",OUTPUT_DIR, seed))?;
     
     let mut slug_bits= BitVec::<_, Msb0>::from_slice(slug.as_bytes()).into_iter().map(|bit| bit as u8);
     let bit_len = slug_bits.len();
-
-    let num_pixels = (bit_len + 2) / 3;
-    let mut pixel_offset = rng.next_u64() as usize % ((WIDTH*HEIGHT) - num_pixels + 1 );
     
     let mut ret =  BitVec::<u8, Msb0>::with_capacity(bit_len);
     
     let found_slug = match method {
         StegMethod::LSB => {
+            let num_pixels = (bit_len + 2) / 3;
+            let mut pixel_offset = rng.next_u64() as usize % ((WIDTH*HEIGHT) - num_pixels + 1 );
+            pixel_offset = pixel_offset - (pixel_offset % 8);
             for (_, _, rgb) in image.pixels().skip(pixel_offset).take(num_pixels) {
                 let mut pixel: [u8; 4] = rgb.0;
                 for col in &pixel[0..3] {
@@ -138,6 +155,19 @@ pub fn solve_steg_challenge(seed: u32) -> Result<String, image::ImageError> {
                 }
             }
             String::from_utf8_lossy(&ret[0..bit_len].to_bitvec().into_vec()).into_owned()
+        }
+        StegMethod::RED => {
+            let mut pixel_offset = rng.next_u64() as usize % ((WIDTH*HEIGHT) - bit_len + 1 );
+            pixel_offset = pixel_offset - (pixel_offset % 8);
+            let bit_layer_idx = rng.next_u32() as usize % 3;
+
+            for (_, _, rgb) in image.pixels().skip(pixel_offset).take(bit_len) {
+                let mut pixel: [u8; 4] = rgb.0;
+                let bit = ((pixel[0] >> bit_layer_idx) & 1 ) != 0;
+                ret.push(bit);
+            } 
+
+            String::from_utf8_lossy(&ret.into_vec()).into_owned()
         }
         _ => String::new()
     };
