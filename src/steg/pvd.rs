@@ -39,7 +39,7 @@ fn capacity(difference: i16) -> (u32, i16) {
 }
 
 
-pub fn embed_message(image: &mut [[u8; 4]], mut slug_bits: impl ExactSizeIterator<Item = u8>) -> (usize, usize) {
+pub fn embed(image: &mut [[u8; 4]], mut slug_bits: impl ExactSizeIterator<Item = u8>) -> (usize, usize) {
 
     for idxs in zigzags().chunks(2) {
         let pixel1 = image[idxs[0]];
@@ -88,7 +88,7 @@ pub fn embed_message(image: &mut [[u8; 4]], mut slug_bits: impl ExactSizeIterato
 }
 
 
-pub fn solve_image(image: DynamicImage, bit_len: usize) -> String {
+pub fn solve(image: DynamicImage, bit_len: usize) -> String {
     let mut ret =  BitVec::<u8, Msb0>::with_capacity(bit_len);
     let pixels = image.pixels().collect::<Vec<_>>();
     let binding = zigzags();
