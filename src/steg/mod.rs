@@ -9,6 +9,7 @@ use crate::{random, rng_from_seed, HEIGHT, OUTPUT_DIR, WIDTH};
 const ANIMALS: [&str; 172] = ["ant","anteater","antelope","armadillo","auk","badger","bat","bear","beaver","bison","boar","buffalo","butterfly","camel","capybara","caribou","cat","caterpillar","cheetah","chimpanzee","chinchilla","chipmunk","civet","clam","cobra","cockroach","cougar","cow","coyote","crab","crane","crocodile","crow","deer","dingo","dog","dolphin","donkey","duck","eagle","earthworm","echidna","eel","elephant","elk","emu","falcon","ferret","finch","fish","flamingo","fly","fox","frog","gazelle","gecko","gerbil","giraffe","goat","goose","gorilla","grasshopper","hamster","hare","hawk","hedgehog","heron","hippopotamus","hornet","horse","hummingbird","hyena","ibis","iguana","impala","jaguar","jay","kangaroo","kingfisher","kiwi","koala","kudu","ladybug","lemur","leopard","lion","lizard","lobster","lynx","macaw","magpie","marmot","marten","meerkat","mink","mole","mongoose","monkey","moose","mosquito","mouse","mule","narwhal","newt","nightingale","ocelot","octopus","okapi","opossum","orangutan","ostrich","otter","owl","oyster","panda","panther","parrot","peacock","pelican","penguin","pheasant","pig","pigeon","porcupine","porpoise","quail","rabbit","racoon","ram","rat","raven","reindeer","rhinoceros","robin","salamander","salmon","sandpiper","scorpion","seahorse","shark","sheep","shrimp","skunk","sloth","snail","snake","sparrow","spider","squid","squirrel","starfish","stoat","stork","swan","tapir","termite","tiger","toad","trout","turkey","turtle","vulture","wallaby","walrus","wasp","weasel","whale","wolf","wolverine","worm","yak","zebra"];
 const NUM_ANIMALS: usize = 4;
 
+mod pvd;
 
 #[derive(Debug)]
 pub enum StegMethod {
@@ -17,6 +18,7 @@ pub enum StegMethod {
     GREEN, // for G only, random layer
     BLUE, // for B only, random layer
     ALPHA, // hide something in alpha place
+    APVD,
     PVD,
     BPCS,
     DCT,
@@ -29,7 +31,8 @@ pub enum StegMethod {
 enum Colour {
     RED = 0,
     GREEN = 1,
-    BLUE = 2
+    BLUE = 2,
+    ALPHA = 3,
 }
 
 
@@ -67,7 +70,6 @@ impl Display for StegProblem {
         write!(f, "seed: {}\nslug: {}\nmethod: {:?}\noffset: {}\nlayer: {}", self.seed, self.slug, self.method, self.pixel_offset, self.layer_idx)
     }
 }
-
 
 fn random_slug(seed: u32) -> String {
     let mut rng = rng_from_seed(seed);
@@ -110,7 +112,7 @@ fn solve_layer(mut rng: impl Rng, colour: Colour, image: DynamicImage, bit_len: 
 pub fn random_steg_challenge(seed: u32) -> StegProblem {
     let mut rng = rng_from_seed(seed);
     let slug = random_slug(rng.next_u32());
-    let method = StegMethod::BLUE;
+    let method = StegMethod::PVD;
     let mut image = random::simplex_image(seed);
     
     let mut slug_bits= BitVec::<_, Msb0>::from_slice(slug.as_bytes()).into_iter().map(|bit| bit as u8);
@@ -145,6 +147,8 @@ pub fn random_steg_challenge(seed: u32) -> StegProblem {
         StegMethod::RED => steg_layer_in_place(rng, Colour::RED, &mut image, slug_bits),
         StegMethod::GREEN => steg_layer_in_place(rng, Colour::GREEN, &mut image, slug_bits),    
         StegMethod::BLUE => steg_layer_in_place(rng, Colour::BLUE, &mut image, slug_bits),
+        StegMethod::ALPHA => steg_layer_in_place(rng, Colour::ALPHA, &mut image, slug_bits),
+        StegMethod::PVD => pvd::embed_message(&mut image, slug_bits),
         _ => (0, 0)
     };
     
@@ -161,7 +165,7 @@ pub fn random_steg_challenge(seed: u32) -> StegProblem {
 pub fn solve_steg_challenge(seed: u32) -> Result<String, image::ImageError> {
     let mut rng = rng_from_seed(seed);
     let slug = random_slug(rng.next_u32());
-    let method = StegMethod::BLUE;
+    let method = StegMethod::PVD;
     let image = image::open(format!("{}/{}.png",OUTPUT_DIR, seed))?;
     
     let slug_bits= BitVec::<_, Msb0>::from_slice(slug.as_bytes()).into_iter().map(|bit| bit as u8);
@@ -185,6 +189,8 @@ pub fn solve_steg_challenge(seed: u32) -> Result<String, image::ImageError> {
         StegMethod::RED => solve_layer(rng, Colour::RED, image, bit_len),
         StegMethod::GREEN => solve_layer(rng, Colour::GREEN, image, bit_len),
         StegMethod::BLUE => solve_layer(rng, Colour::BLUE, image, bit_len),
+        StegMethod::ALPHA => solve_layer(rng, Colour::ALPHA, image, bit_len),
+        StegMethod::PVD => pvd::solve_image(image, bit_len),
         _ => String::new()
     };
 
