@@ -12,7 +12,7 @@ If a method is on this table and is not implemented, it will eventually be added
 | APVD         | ❌ Not Implemented Yet |
 | BPCS         | ❌ Not Implemented Yet |
 | DCT          | ❌ Not Implemented Yet |
-| DWT          | ❌ Not Implemented Yet |
+| DWT          | 🚧 In Progress         |
 | DFT          | ❌ Not Implemented Yet |
 
 ## Usage
