@@ -1,5 +1,4 @@
 use bitvec::{order::Msb0, vec::BitVec};
-use image::{DynamicImage, GenericImageView};
 
 use crate::{HEIGHT, WIDTH};
 
@@ -39,7 +38,7 @@ fn capacity(difference: i16) -> (u32, i16) {
 }
 
 
-pub fn embed(image: &mut [[u8; 4]], mut slug_bits: impl ExactSizeIterator<Item = u8>) -> (usize, usize) {
+pub fn embed(image: &mut [[u8; 4]], mut slug_bits: impl Iterator<Item = u8>) -> (usize, usize) {
 
     for idxs in zigzags().chunks(2) {
         let pixel1 = image[idxs[0]];
@@ -88,15 +87,14 @@ pub fn embed(image: &mut [[u8; 4]], mut slug_bits: impl ExactSizeIterator<Item =
 }
 
 
-pub fn solve(image: DynamicImage, bit_len: usize) -> String {
+pub fn solve(image: &[[u8; 4]], bit_len: usize) -> String {
     let mut ret =  BitVec::<u8, Msb0>::with_capacity(bit_len);
-    let pixels = image.pixels().collect::<Vec<_>>();
     let binding = zigzags();
     let mut idxs = binding.chunks(2);
     while ret.len() < bit_len {
         if let Some(idxs) = idxs.next() {
-            let pixel1 = pixels[idxs[0]].2.0;
-            let pixel2 = pixels[idxs[1]].2.0;
+            let pixel1 = image[idxs[0]];
+            let pixel2 = image[idxs[1]];
             for colour_channel in 0..3 {
                 if ret.len() >= bit_len {
                     break

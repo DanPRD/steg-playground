@@ -6,6 +6,8 @@ use rand_xoshiro::Xoshiro128StarStar;
 
 pub mod random;
 pub mod steg;
+#[cfg(test)]
+mod tests;
 
 pub(crate) const HEIGHT: usize = 800;
 pub(crate) const WIDTH: usize = 800;

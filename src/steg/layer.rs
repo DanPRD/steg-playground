@@ -1,5 +1,4 @@
 use bitvec::{order::Msb0, vec::BitVec};
-use image::{DynamicImage, GenericImageView};
 use rand::Rng;
 
 use crate::{steg::Colour, HEIGHT, WIDTH};
@@ -18,14 +17,13 @@ pub(crate) fn embed(mut rng: impl Rng, colour: Colour, image: &mut [[u8; 4]], bi
     return (pixel_offset, bit_layer_idx)
 }
 
-pub(crate) fn solve(mut rng: impl Rng, colour: Colour, image: DynamicImage, bit_len: usize) -> String {
+pub(crate) fn solve(mut rng: impl Rng, colour: Colour, image: &[[u8; 4]], bit_len: usize) -> String {
     let mut ret =  BitVec::<u8, Msb0>::with_capacity(bit_len);
     let mut pixel_offset = rng.next_u64() as usize % ((WIDTH*HEIGHT) - bit_len + 1 );
     pixel_offset = pixel_offset - (pixel_offset % 8);
     let bit_layer_idx = rng.next_u32() as usize % 3;
 
-    for (_, _, rgb) in image.pixels().skip(pixel_offset).take(bit_len) {
-        let pixel: [u8; 4] = rgb.0;
+    for pixel in image.iter().skip(pixel_offset).take(bit_len) {
         let bit = ((pixel[colour as usize] >> bit_layer_idx) & 1 ) != 0;
         ret.push(bit);
     } 

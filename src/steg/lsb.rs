@@ -1,5 +1,4 @@
 use bitvec::{order::Msb0, vec::BitVec};
-use image::{DynamicImage, GenericImageView};
 use rand::Rng;
 
 use crate::{HEIGHT, WIDTH};
@@ -30,13 +29,12 @@ pub(crate) fn embed(mut rng: impl Rng, image: &mut [[u8; 4]], mut bits: impl Exa
     (pixel_offset, 0)
 }
 
-pub(crate) fn solve(mut rng: impl Rng, image: DynamicImage, bit_len: usize) -> String {
+pub(crate) fn solve(mut rng: impl Rng, image: &[[u8; 4]], bit_len: usize) -> String {
     let mut ret =  BitVec::<u8, Msb0>::with_capacity(bit_len);
     let num_pixels = (bit_len + 2) / 3;
     let mut pixel_offset = rng.next_u64() as usize % ((WIDTH*HEIGHT) - num_pixels + 1 );
     pixel_offset = pixel_offset - (pixel_offset % 8);
-    for (_, _, rgb) in image.pixels().skip(pixel_offset).take(num_pixels) {
-        let pixel: [u8; 4] = rgb.0;
+    for pixel in image.iter().skip(pixel_offset).take(num_pixels) {
         for col in &pixel[0..3] {
             ret.push(col & 1 != 0);
         }

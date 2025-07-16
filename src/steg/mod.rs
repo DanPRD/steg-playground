@@ -3,7 +3,7 @@ use std::fmt::Display;
 use bitvec::{order::Msb0, vec::BitVec};
 use rand::{distr::{Distribution, StandardUniform}, Rng, RngCore};
 
-use crate::{random, rng_from_seed, OUTPUT_DIR};
+use crate::{random, rng_from_seed};
 
 const ANIMALS: [&str; 172] = ["ant","anteater","antelope","armadillo","auk","badger","bat","bear","beaver","bison","boar","buffalo","butterfly","camel","capybara","caribou","cat","caterpillar","cheetah","chimpanzee","chinchilla","chipmunk","civet","clam","cobra","cockroach","cougar","cow","coyote","crab","crane","crocodile","crow","deer","dingo","dog","dolphin","donkey","duck","eagle","earthworm","echidna","eel","elephant","elk","emu","falcon","ferret","finch","fish","flamingo","fly","fox","frog","gazelle","gecko","gerbil","giraffe","goat","goose","gorilla","grasshopper","hamster","hare","hawk","hedgehog","heron","hippopotamus","hornet","horse","hummingbird","hyena","ibis","iguana","impala","jaguar","jay","kangaroo","kingfisher","kiwi","koala","kudu","ladybug","lemur","leopard","lion","lizard","lobster","lynx","macaw","magpie","marmot","marten","meerkat","mink","mole","mongoose","monkey","moose","mosquito","mouse","mule","narwhal","newt","nightingale","ocelot","octopus","okapi","opossum","orangutan","ostrich","otter","owl","oyster","panda","panther","parrot","peacock","pelican","penguin","pheasant","pig","pigeon","porcupine","porpoise","quail","rabbit","racoon","ram","rat","raven","reindeer","rhinoceros","robin","salamander","salmon","sandpiper","scorpion","seahorse","shark","sheep","shrimp","skunk","sloth","snail","snake","sparrow","spider","squid","squirrel","starfish","stoat","stork","swan","tapir","termite","tiger","toad","trout","turkey","turtle","vulture","wallaby","walrus","wasp","weasel","whale","wolf","wolverine","worm","yak","zebra"];
 const NUM_ANIMALS: usize = 4;
@@ -29,7 +29,7 @@ impl Display for StegChallenge {
 
 impl StegChallenge {
     pub fn solve(&self) -> Result<String, image::ImageError> {
-        solve_challenge(self.seed, Some(self.method))
+        solve_challenge(self.seed, Some(self.method), Some(&self.image))
     }
 }
 
@@ -72,7 +72,7 @@ impl StegBuilder {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StegMethod {
     LSB, // LSB for R,G and B pixels
     RED, // for R only, random layer
@@ -152,11 +152,19 @@ fn steg_challenge(seed: u32, method: Option<StegMethod>) -> StegChallenge {
     }
 }
 
-pub fn solve_challenge(seed: u32, method: Option<StegMethod>) -> Result<String, image::ImageError> {
+pub fn solve_challenge(seed: u32, method: Option<StegMethod>, image: Option<&[[u8; 4]]>) -> Result<String, image::ImageError>
+{
     let mut rng = rng_from_seed(seed);
     let slug = random_slug(rng.next_u32());
-    let method = method.unwrap_or(rng_from_seed(seed).random());
-    let image = image::open(format!("{}/{}.png",OUTPUT_DIR, seed))?;
+    let method = method.unwrap_or_else(|| rng_from_seed(seed).random());
+    let buf;
+    let image = match image {
+        Some(img) => img,
+        None => {
+            buf = random::simplex_image(seed);
+            &buf
+        }
+    };
     let bit_len = slug.len() * 8;
     
     let found_slug = match method {
