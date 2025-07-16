@@ -26,4 +26,23 @@ pub fn save_image(pixel_buffer: &[[u8; 4]], filename: impl AsRef<Path>) {
     let _ = image::save_buffer(path, &raw, WIDTH as u32, HEIGHT as u32, image::ColorType::Rgba8);
 }
 
+pub fn save_luma8_image(pixel_buffer: &[u8], filename: impl AsRef<Path>) {
+    let mut path = PathBuf::from(OUTPUT_DIR);
+    path.push(filename);
+    path.set_extension("png");
+    let _ = image::save_buffer(path, pixel_buffer, WIDTH as u32, HEIGHT as u32, image::ColorType::L8);
+}
+
+pub fn image_to_luma8(image: &[[u8; 4]]) -> Vec<u8> {
+    image
+    .iter()
+    .map(|&[r, g, b, _a]| {
+        ((299 * r as u32
+        + 587 * g as u32
+        + 114 * b as u32)
+        / 1000) as u8
+    })
+    .collect()
+}
+
 

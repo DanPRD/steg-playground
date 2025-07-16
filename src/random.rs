@@ -5,7 +5,7 @@ use crate::{rng_from_seed, HEIGHT, WIDTH};
 
 const LOWER_BOUND: f64 = -0.7;
 const HIGHER_BOUND: f64 = 0.7;
-const NUM_COLS: usize = 10;
+const NUM_COLS: usize = 30;
 const STEP: f64 = (HIGHER_BOUND - LOWER_BOUND) / (NUM_COLS as f64 - 1.0);
 const POSITIONS: [f64; NUM_COLS] = {
     let mut arr = [0.0; NUM_COLS];

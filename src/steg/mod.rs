@@ -11,6 +11,7 @@ const NUM_ANIMALS: usize = 4;
 mod pvd;
 mod lsb;
 mod layer;
+mod dwt;
 
 pub struct StegChallenge {
     pub seed: u32,
@@ -88,7 +89,7 @@ pub enum StegMethod {
 }
 
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 enum Colour {
     RED = 0,
     GREEN = 1,
@@ -139,6 +140,7 @@ fn steg_challenge(seed: u32, method: Option<StegMethod>) -> StegChallenge {
         StegMethod::BLUE => layer::embed(rng, Colour::BLUE, &mut image, slug_bits),
         StegMethod::ALPHA => layer::embed(rng, Colour::ALPHA, &mut image, slug_bits),
         StegMethod::PVD => pvd::embed(&mut image, slug_bits),
+        StegMethod::DWT => dwt::embed(&image),
         _ => (0, 0)
     };
     
@@ -174,6 +176,7 @@ pub fn solve_challenge(seed: u32, method: Option<StegMethod>, image: Option<&[[u
         StegMethod::BLUE => layer::solve(rng, Colour::BLUE, image, bit_len),
         StegMethod::ALPHA => layer::solve(rng, Colour::ALPHA, image, bit_len),
         StegMethod::PVD => pvd::solve(image, bit_len),
+        StegMethod::DWT => dwt::solve(),
         _ => String::new()
     };
 
